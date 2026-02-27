@@ -6,8 +6,9 @@ services:
     container_name: crom-vision-app
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "${PORT:-8085}:${PORT:-8085}"
     volumes:
       - ./data:/app/data
     env_file:
       - .env
+
