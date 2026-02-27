@@ -114,6 +114,7 @@ func main() {
 	mux.HandleFunc("/i/", handlers.ImageHandler)
 	mux.HandleFunc("/api/checkout", originGuard(handlers.CheckoutHandler))
 	mux.HandleFunc("/api/webhook/mp", handlers.WebhookMPHandler) // Webhook MP não usa originGuard (vem do Mercado Pago)
+	mux.HandleFunc("/api/payment-info", handlers.PaymentInfoHandler)
 	mux.HandleFunc("/api/public-links", handlers.PublicLinksHandler)
 	mux.HandleFunc("/api/private-stats", handlers.PrivateStatsHandler)
 	mux.HandleFunc("/api/link-stats", handlers.LinkStatsHandler)

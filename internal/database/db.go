@@ -61,6 +61,12 @@ func InitDB() {
 		"ALTER TABLE links ADD COLUMN password_hash TEXT",
 		"ALTER TABLE links ADD COLUMN file_path TEXT",
 		"ALTER TABLE links ADD COLUMN creator_ip TEXT",
+		// v5 — Mercado Pago PIX
+		"ALTER TABLE links ADD COLUMN price REAL DEFAULT 0",
+		"ALTER TABLE links ADD COLUMN mp_payment_id TEXT",
+		"ALTER TABLE links ADD COLUMN mp_qr_code TEXT",
+		"ALTER TABLE links ADD COLUMN mp_qr_base64 TEXT",
+		"ALTER TABLE links ADD COLUMN mp_ticket_url TEXT",
 	}
 	for _, q := range migrations {
 		DB.Exec(q) 

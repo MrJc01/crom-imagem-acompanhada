@@ -137,30 +137,36 @@
             <!-- QR Code -->
             <div
                 class="bg-zinc-900/80 rounded-2xl border border-zinc-800/50 p-6 flex flex-col items-center text-center mb-6">
-                <div class="w-44 h-44 bg-white rounded-2xl p-3 mb-4 shadow-lg pulse-ring">
-                    <svg viewBox="0 0 100 100" class="w-full h-full">
-                        <rect width="100" height="100" fill="#fff" />
-                        <g fill="#000">
-                            <rect x="5" y="5" width="25" height="25" rx="2" />
-                            <rect x="70" y="5" width="25" height="25" rx="2" />
-                            <rect x="5" y="70" width="25" height="25" rx="2" />
-                            <rect x="35" y="5" width="10" height="5" />
-                            <rect x="50" y="5" width="5" height="10" />
-                            <rect x="35" y="35" width="30" height="30" rx="3" />
-                            <rect x="70" y="40" width="10" height="5" />
-                            <rect x="80" y="50" width="5" height="10" />
-                            <rect x="5" y="40" width="10" height="5" />
-                            <rect x="40" y="70" width="10" height="10" />
-                            <rect x="60" y="75" width="5" height="5" />
-                            <rect x="70" y="70" width="25" height="25" rx="2" />
-                            <rect x="75" y="75" width="15" height="15" rx="1" fill="#fff" />
-                            <rect x="80" y="80" width="5" height="5" />
-                        </g>
-                    </svg>
+                <div id="qr-container"
+                    class="w-44 h-44 bg-white rounded-2xl p-3 mb-4 shadow-lg pulse-ring flex items-center justify-center">
+                    <div class="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin">
+                    </div>
                 </div>
-                <p class="text-xs text-zinc-500 max-w-[250px] leading-relaxed">No modo <span
-                        class="text-emerald-400 font-semibold">SaaS</span>, o webhook do gateway libera a URL
-                    automaticamente após a confirmação.</p>
+                <p class="text-xs text-zinc-500 max-w-[250px] leading-relaxed">Escaneie o QR Code com seu app de banco
+                    ou copie o código PIX abaixo.</p>
+                <div id="pix-copy-section" class="hidden w-full mt-4">
+                    <label
+                        class="text-[10px] text-emerald-400 font-bold uppercase tracking-widest mb-1.5 block text-left">PIX
+                        Copia e Cola</label>
+                    <div class="flex items-center gap-2">
+                        <input type="text" id="pix-code" readonly
+                            class="flex-1 bg-zinc-950/80 border border-zinc-800/50 text-zinc-300 text-[10px] rounded-xl p-3 font-mono outline-none cursor-pointer truncate"
+                            onclick="this.select(); navigator.clipboard.writeText(this.value); showToast('Código PIX copiado!')">
+                        <button
+                            onclick="document.getElementById('pix-code').select(); navigator.clipboard.writeText(document.getElementById('pix-code').value); showToast('Copiado!')"
+                            class="p-3 bg-emerald-600 hover:bg-emerald-500 rounded-xl text-white transition shrink-0">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z">
+                                </path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <a id="ticket-link" href="#" target="_blank"
+                    class="hidden w-full mt-3 block text-center px-4 py-3 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white text-xs font-bold rounded-xl shadow-lg shadow-emerald-500/20 transition">
+                    Abrir no App do Banco →
+                </a>
             </div>
 
             <!-- Garantia -->
@@ -199,20 +205,64 @@
         </div>
     </main>
 
+    <!-- Toast -->
+    <div id="toast"
+        class="fixed top-5 right-5 bg-emerald-600 text-white px-6 py-3 rounded-xl shadow-2xl transform transition-all duration-300 translate-x-[120%] opacity-0 z-[80] font-medium text-sm">
+        Copiado!</div>
+
     <script>
         const urlParams = new URLSearchParams(window.location.search);
         const linkId = urlParams.get('id');
-        const price = urlParams.get('p');
 
         if (linkId) document.getElementById('invoice-id').innerText = "INV-" + linkId.toUpperCase();
-        if (price) document.getElementById('invoice-price').innerText = parseFloat(price).toFixed(2);
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.innerText = msg;
+            t.classList.remove('translate-x-[120%]', 'opacity-0');
+            setTimeout(() => t.classList.add('translate-x-[120%]', 'opacity-0'), 4000);
+        }
 
         async function initPay() {
+            if (!linkId) return;
             try {
+                const res = await fetch('/api/payment-info?id=' + linkId);
+                if (!res.ok) throw new Error('Link não encontrado');
+                const data = await res.json();
+
+                document.getElementById('invoice-price').innerText = parseFloat(data.price).toFixed(2);
+
+                const container = document.getElementById('qr-container');
+                if (data.qr_code_base64) {
+                    container.innerHTML = `<img src="data:image/png;base64,${data.qr_code_base64}" class="w-full h-full object-contain rounded-xl" alt="QR Code PIX">`;
+                } else {
+                    container.innerHTML = '<p class="text-zinc-500 text-xs text-center">QR indisponível.<br>Use o código abaixo.</p>';
+                }
+
+                if (data.qr_code) {
+                    document.getElementById('pix-code').value = data.qr_code;
+                    document.getElementById('pix-copy-section').classList.remove('hidden');
+                }
+
+                if (data.ticket_url) {
+                    const link = document.getElementById('ticket-link');
+                    link.href = data.ticket_url;
+                    link.classList.remove('hidden');
+                }
+
+                if (data.status === 'approved') {
+                    const badge = document.getElementById('payment-badge');
+                    badge.className = "px-3 py-1.5 bg-emerald-500/10 text-emerald-400 text-[10px] font-bold rounded-full border border-emerald-500/30 flex items-center gap-1.5";
+                    badge.innerHTML = '<span class="w-1.5 h-1.5 bg-emerald-400 rounded-full"></span> APROVADO';
+                }
+
                 const confRes = await fetch('/api/config');
                 const conf = await confRes.json();
                 if (conf.app_mode === 'dev') document.getElementById('dev-mode-controls').classList.remove('hidden');
-            } catch (e) { }
+            } catch (e) {
+                console.error('Erro:', e);
+                document.getElementById('qr-container').innerHTML = '<p class="text-red-400 text-xs text-center">Erro ao carregar</p>';
+            }
         }
 
         async function forceSimulatePayment() {
@@ -238,7 +288,28 @@
             } catch (e) { alert("Erro " + e.message); }
         }
 
+        // Poll de status a cada 10s (max 10 min)
+        let pollCount = 0;
+        async function pollStatus() {
+            if (!linkId || pollCount > 60) return;
+            pollCount++;
+            try {
+                const res = await fetch('/api/payment-info?id=' + linkId);
+                const data = await res.json();
+                if (data.status === 'approved') {
+                    const badge = document.getElementById('payment-badge');
+                    badge.className = "px-3 py-1.5 bg-emerald-500/10 text-emerald-400 text-[10px] font-bold rounded-full border border-emerald-500/30 flex items-center gap-1.5";
+                    badge.innerHTML = '<span class="w-1.5 h-1.5 bg-emerald-400 rounded-full"></span> APROVADO';
+                    showToast('Pagamento confirmado!');
+                    setTimeout(() => { window.location.href = `/?dashboard=${linkId}`; }, 2000);
+                    return;
+                }
+            } catch (e) { }
+            setTimeout(pollStatus, 10000);
+        }
+
         initPay();
+        setTimeout(pollStatus, 10000);
     </script>
 </body>
 

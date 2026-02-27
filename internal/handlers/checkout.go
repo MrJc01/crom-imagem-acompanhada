@@ -177,12 +177,38 @@ func CheckoutHandler(w http.ResponseWriter, r *http.Request) {
 		passwordHash = hex.EncodeToString(h.Sum(nil))
 	}
 
+	// --- Mercado Pago PIX ---
+	var mpPaymentID string
+	var mpQRCode, mpQRBase64, mpTicketURL string
+
+	if price > 0 && appMode != "free" {
+		payerEmail := email
+		if payerEmail == "" {
+			payerEmail = "cliente@crom.run" // fallback para MP
+		}
+		description := fmt.Sprintf("Imagem Acompanhada — Tier %s — %s", tierReq, id)
+		
+		mpResult, err := services.CreatePixPayment(price, description, payerEmail, id)
+		if err != nil {
+			log.Printf("[MP ERR] Falha ao criar pagamento PIX: %v", err)
+			// Continua sem PIX — frontend mostrará fallback
+		} else {
+			mpPaymentID = fmt.Sprintf("%d", mpResult.PaymentID)
+			mpQRCode = mpResult.QRCode
+			mpQRBase64 = mpResult.QRCodeB64
+			mpTicketURL = mpResult.TicketURL
+			paymentStatus = mpResult.Status // normalmente "pending"
+		}
+	}
+
 	_, errDB := database.DB.Exec(`
-		INSERT INTO links (id, original_url, max_views, expires_at, tier, email, payment_status, is_private, password_hash, file_path, creator_ip)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		id, originalURL, maxViews, expiresAt, tierReq, email, paymentStatus, isPrivate, passwordHash, savedFilePath, ipHash)
+		INSERT INTO links (id, original_url, max_views, expires_at, tier, email, payment_status, is_private, password_hash, file_path, creator_ip, price, mp_payment_id, mp_qr_code, mp_qr_base64, mp_ticket_url)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		id, originalURL, maxViews, expiresAt, tierReq, email, paymentStatus, isPrivate, passwordHash, savedFilePath, ipHash,
+		price, mpPaymentID, mpQRCode, mpQRBase64, mpTicketURL)
 
 	if errDB != nil {
+		log.Printf("[DB ERR] Falha ao inserir link: %v", errDB)
 		http.Error(w, "Failed to create resource", http.StatusInternalServerError)
 		return
 	}
@@ -195,7 +221,7 @@ func CheckoutHandler(w http.ResponseWriter, r *http.Request) {
 	previewUrl := baseURL + "/p/" + id
 
 	if email != "" {
-		go func(e, lid, pwd, status string) {
+		go func(e, lid, pwd, status, ticketURL string) {
 			subject := "Crom-Vision - Ativo Operante!"
 			body := fmt.Sprintf(`<h2>Gerenciador de Ativos Crom-Vision</h2>
 			<p>Seu ativo <strong>%s</strong> foi processado.</p>
@@ -205,6 +231,13 @@ func CheckoutHandler(w http.ResponseWriter, r *http.Request) {
 			if status == "pending" {
 				body += fmt.Sprintf(`<hr><p style="color:#d97706"><b>Atenção:</b> Seu sistema aguarda o pagamento. Quando for aprovado, seu link será liberado.</p>
 				<p>Sua Senha Mágica para acessar o Relatório Privado é: <b>%s</b></p>`, pwd)
+				
+				// Incluir link de pagamento do Mercado Pago
+				if ticketURL != "" {
+					body += fmt.Sprintf(`<hr><h3 style="color:#10b981">💳 Pagar com PIX</h3>
+					<p>Clique no link abaixo para pagar via PIX (Mercado Pago):</p>
+					<p><a href="%s" style="display:inline-block;background:#10b981;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold">Pagar R$ %.2f via PIX →</a></p>`, ticketURL, price)
+				}
 			} else {
 				if pwd != "" {
 					body += fmt.Sprintf(`<p>Seu tracker está ativo!</p><p>Sua Senha Mágica: <b>%s</b></p>`, pwd)
@@ -213,7 +246,7 @@ func CheckoutHandler(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 			services.SendEmail(e, subject, body)
-		}(email, id, clearPassword, paymentStatus)
+		}(email, id, clearPassword, paymentStatus, mpTicketURL)
 	}
 
 	w.Header().Set("Content-Type", "application/json")

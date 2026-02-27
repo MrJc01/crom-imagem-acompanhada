@@ -780,7 +780,7 @@
                     document.getElementById('btn-success-lightbox').onclick = () => { mdl.classList.add('hidden'); openLightbox(data.preview_url); };
                     loadGallery();
                 } else {
-                    window.location.href = `/pay.html?id=${data.id}&p=${data.price}`;
+                    window.location.href = `/pay.html?id=${data.id}`;
                 }
             } catch (err) {
                 showToast('Falha: ' + err.message);
