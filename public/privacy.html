@@ -1,28 +1,118 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Política de Privacidade — Imagem Acompanhada</title>
     <style>
-        :root { --bg: #0f0f14; --card: #1a1a24; --text: #e4e4ef; --muted: #9393a4; --accent: #8b5cf6; --border: #2a2a3e; }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
-        .container { max-width: 800px; margin: 0 auto; padding: 40px 20px; }
-        h1 { font-size: 2rem; margin-bottom: 8px; color: var(--accent); }
-        h2 { font-size: 1.3rem; margin: 32px 0 12px; color: var(--text); border-bottom: 1px solid var(--border); padding-bottom: 8px; }
-        p, li { color: var(--muted); margin-bottom: 12px; }
-        ul { padding-left: 24px; }
-        li { margin-bottom: 8px; }
-        .updated { color: var(--muted); font-size: 0.85rem; margin-bottom: 32px; }
-        .highlight { background: var(--card); border-left: 3px solid var(--accent); padding: 16px 20px; border-radius: 8px; margin: 20px 0; }
-        .highlight p { margin: 0; color: var(--text); }
-        code { background: var(--card); padding: 2px 6px; border-radius: 4px; font-size: 0.9rem; }
-        a { color: var(--accent); }
-        .back { display: inline-block; margin-top: 32px; color: var(--accent); text-decoration: none; font-size: 0.9rem; }
-        .back:hover { text-decoration: underline; }
+        :root {
+            --bg: #0f0f14;
+            --card: #1a1a24;
+            --text: #e4e4ef;
+            --muted: #9393a4;
+            --accent: #8b5cf6;
+            --border: #2a2a3e;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.7;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 8px;
+            color: var(--accent);
+        }
+
+        h2 {
+            font-size: 1.3rem;
+            margin: 32px 0 12px;
+            color: var(--text);
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 8px;
+        }
+
+        p,
+        li {
+            color: var(--muted);
+            margin-bottom: 12px;
+        }
+
+        ul {
+            padding-left: 24px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        .updated {
+            color: var(--muted);
+            font-size: 0.85rem;
+            margin-bottom: 32px;
+        }
+
+        .highlight {
+            background: var(--card);
+            border-left: 3px solid var(--accent);
+            padding: 16px 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .highlight p {
+            margin: 0;
+            color: var(--text);
+        }
+
+        code {
+            background: var(--card);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        a {
+            color: var(--accent);
+        }
+
+        .back {
+            display: inline-block;
+            margin-top: 32px;
+            color: var(--accent);
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+
+        .back:hover {
+            text-decoration: underline;
+        }
     </style>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-YRL3ZSBHE9"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+        gtag('config', 'G-YRL3ZSBHE9');
+    </script>
 </head>
+
 <body>
     <div class="container">
         <h1>🛡️ Política de Privacidade</h1>
@@ -31,23 +121,32 @@
         <h2>1. Quais dados coletamos</h2>
         <p>O Imagem Acompanhada coleta os seguintes dados durante a operação:</p>
         <ul>
-            <li><strong>Endereço IP</strong> — armazenado exclusivamente como hash criptográfico (SHA-256 + salt). O IP nominal jamais é gravado no banco de dados.</li>
-            <li><strong>User-Agent</strong> — versão resumida do navegador/SO (truncado em 120 caracteres). Usado para diferenciar acessos únicos.</li>
-            <li><strong>País e Cidade</strong> — obtidos via banco de dados de geolocalização local (GeoLite2). Nenhuma API externa é consultada.</li>
-            <li><strong>E-mail</strong> — fornecido voluntariamente pelo usuário no checkout. Usado apenas para notificações.</li>
-            <li><strong>Imagem enviada</strong> — armazenada localmente no servidor até a data de expiração configurada.</li>
+            <li><strong>Endereço IP</strong> — armazenado exclusivamente como hash criptográfico (SHA-256 + salt). O IP
+                nominal jamais é gravado no banco de dados.</li>
+            <li><strong>User-Agent</strong> — versão resumida do navegador/SO (truncado em 120 caracteres). Usado para
+                diferenciar acessos únicos.</li>
+            <li><strong>País e Cidade</strong> — obtidos via banco de dados de geolocalização local (GeoLite2). Nenhuma
+                API externa é consultada.</li>
+            <li><strong>E-mail</strong> — fornecido voluntariamente pelo usuário no checkout. Usado apenas para
+                notificações.</li>
+            <li><strong>Imagem enviada</strong> — armazenada localmente no servidor até a data de expiração configurada.
+            </li>
         </ul>
 
         <h2>2. Base legal (LGPD Art. 7º)</h2>
         <div class="highlight">
-            <p>Os dados são tratados com base no <strong>legítimo interesse</strong> do controlador para fins de analytics de acesso e proteção contra fraude, e no <strong>consentimento</strong> do titular quando este fornece voluntariamente o e-mail.</p>
+            <p>Os dados são tratados com base no <strong>legítimo interesse</strong> do controlador para fins de
+                analytics de acesso e proteção contra fraude, e no <strong>consentimento</strong> do titular quando este
+                fornece voluntariamente o e-mail.</p>
         </div>
 
         <h2>3. Como protegemos seus dados</h2>
         <ul>
-            <li>IPs são <strong>hasheados com SHA-256 + salt secreto</strong> — não é possível reverter o hash para descobrir o IP original.</li>
+            <li>IPs são <strong>hasheados com SHA-256 + salt secreto</strong> — não é possível reverter o hash para
+                descobrir o IP original.</li>
             <li>Nenhuma API externa recebe dados de visitantes.</li>
-            <li>Dados expirados são <strong>destruídos permanentemente</strong> (hard delete) incluindo imagens físicas.</li>
+            <li>Dados expirados são <strong>destruídos permanentemente</strong> (hard delete) incluindo imagens físicas.
+            </li>
             <li>Logs de acesso são removidos automaticamente após <strong>90 dias</strong>.</li>
         </ul>
 
@@ -55,7 +154,8 @@
         <p>Você tem direito de:</p>
         <ul>
             <li><strong>Consultar</strong> seus dados — <code>POST /api/lgpd/consultar</code> com seu email.</li>
-            <li><strong>Solicitar exclusão</strong> — <code>DELETE /api/lgpd/apagar</code> com seu email. Todos os links, logs e imagens associados serão permanentemente removidos.</li>
+            <li><strong>Solicitar exclusão</strong> — <code>DELETE /api/lgpd/apagar</code> com seu email. Todos os
+                links, logs e imagens associados serão permanentemente removidos.</li>
             <li><strong>Revogar consentimento</strong> a qualquer momento.</li>
         </ul>
 
@@ -64,14 +164,17 @@
 
         <h2>6. Retenção de dados</h2>
         <ul>
-            <li><strong>Links e imagens</strong>: mantidos até a data de expiração configurada no checkout, depois destruídos automaticamente.</li>
+            <li><strong>Links e imagens</strong>: mantidos até a data de expiração configurada no checkout, depois
+                destruídos automaticamente.</li>
             <li><strong>Logs de acesso</strong>: máximo de 90 dias, independentemente do link.</li>
         </ul>
 
         <h2>7. Contato do Controlador</h2>
-        <p>Para exercer seus direitos ou esclarecer dúvidas sobre o tratamento de dados, entre em contato pelo canal disponível na plataforma.</p>
+        <p>Para exercer seus direitos ou esclarecer dúvidas sobre o tratamento de dados, entre em contato pelo canal
+            disponível na plataforma.</p>
 
         <a href="/" class="back">← Voltar para a página inicial</a>
     </div>
 </body>
+
 </html>
