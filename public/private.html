@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Imagem Acompanhada | Dashboard Privado</title>
+    <meta name="description" content="Acesse o dashboard privado do seu asset com métricas, gráficos e geolocalização.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap"
+        rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'], mono: ['JetBrains Mono', 'monospace'] },
+                    colors: { brand: { 400: '#34d399', 500: '#10b981', 600: '#059669', 900: '#064e3b' } }
+                }
+            }
+        }
+    </script>
+    <style>
+        .glass {
+            background: rgba(24, 24, 27, 0.6);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(63, 63, 70, 0.5);
+        }
+
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px)
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0)
+            }
+        }
+
+        .fade-up {
+            animation: fadeUp .5s ease-out forwards;
+        }
+
+        .card-hover {
+            transition: all .3s cubic-bezier(.4, 0, .2, 1);
+        }
+
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: #27272a transparent;
+        }
+    </style>
+</head>
+
+<body class="bg-zinc-950 text-zinc-100 min-h-screen font-sans antialiased relative">
+
+    <!-- Ambient -->
+    <div class="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        <div class="absolute top-[-10%] right-[20%] w-[500px] h-[500px] bg-indigo-600/5 rounded-full blur-[160px]">
+        </div>
+        <div class="absolute bottom-[-5%] left-[30%] w-[400px] h-[400px] bg-emerald-600/5 rounded-full blur-[140px]">
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast"
+        class="fixed top-5 right-5 bg-emerald-600 text-white px-6 py-3 rounded-xl shadow-2xl transform transition-all duration-300 translate-x-[120%] opacity-0 z-[80] font-medium text-sm">
+        Copiado!</div>
+
+    <!-- Login Screen -->
+    <div id="login-screen" class="min-h-screen flex items-center justify-center p-6 relative z-10">
+        <div class="glass rounded-3xl p-8 w-full max-w-md shadow-2xl fade-up border-zinc-700/50">
+            <div class="text-center mb-8">
+                <div
+                    class="w-14 h-14 mx-auto mb-4 bg-gradient-to-br from-indigo-500 to-emerald-500 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                    <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z">
+                        </path>
+                    </svg>
+                </div>
+                <h1
+                    class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-emerald-400 mb-2">
+                    Acesso Restrito</h1>
+                <p class="text-zinc-500 text-sm">Autentique-se com a Senha Mágica do seu e-mail.</p>
+            </div>
+            <div class="space-y-5">
+                <div>
+                    <label class="block text-[10px] font-semibold text-zinc-500 uppercase tracking-widest mb-2">ID do
+                        Asset</label>
+                    <input type="text" id="ipt-id"
+                        class="w-full bg-zinc-900/80 border border-zinc-800/50 rounded-xl p-3.5 text-white focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition text-sm font-mono"
+                        placeholder="c_abcd1234">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-semibold text-zinc-500 uppercase tracking-widest mb-2">Senha
+                        Mágica</label>
+                    <input type="password" id="ipt-pass"
+                        class="w-full bg-zinc-900/80 border border-zinc-800/50 rounded-xl p-3.5 text-white focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition text-sm font-mono"
+                        placeholder="••••••••••••" onkeyup="if(event.key==='Enter') auth()">
+                </div>
+                <button onclick="auth()"
+                    class="w-full bg-gradient-to-r from-indigo-600 to-emerald-600 hover:from-indigo-500 hover:to-emerald-500 text-white py-3.5 rounded-xl font-bold shadow-lg shadow-indigo-500/15 transition-all active:scale-[.98] text-sm">
+                    Desbloquear Workspace
+                </button>
+                <p id="error-msg" class="text-red-400 text-xs text-center font-semibold hidden"></p>
+            </div>
+            <div class="mt-8 text-center border-t border-zinc-800/50 pt-5">
+                <a href="/" class="text-xs text-zinc-600 hover:text-zinc-300 transition">← Voltar ao início</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard Panel (Hidden) -->
+    <div id="dash-panel" class="hidden max-w-6xl mx-auto px-6 lg:px-8 py-8 relative z-10">
+        <!-- Header -->
+        <header
+            class="flex flex-col md:flex-row justify-between md:items-center mb-8 pb-6 border-b border-zinc-800/50 gap-4 fade-up">
+            <div>
+                <h1 class="text-2xl font-bold flex items-center gap-3">
+                    <span class="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center"><svg
+                            class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z">
+                            </path>
+                        </svg></span>
+                    Workspace: <span id="dash-id" class="font-mono text-indigo-400"></span>
+                </h1>
+                <p class="text-zinc-600 text-xs mt-1">Este asset e seus logs serão removidos no deadline definido.</p>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+                <button onclick="copyToClipboard('pixel')"
+                    class="text-xs bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20 px-4 py-2.5 rounded-xl transition font-semibold">Copiar
+                    Proxy Link</button>
+                <a href="/"
+                    class="text-xs bg-zinc-900 hover:bg-zinc-800 border border-zinc-800/50 px-4 py-2.5 rounded-xl transition text-zinc-400 hover:text-white font-semibold">Início</a>
+            </div>
+        </header>
+
+        <!-- Image + Quick Links -->
+        <section class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <div class="lg:col-span-1 bg-zinc-900/50 rounded-2xl border border-zinc-800/50 overflow-hidden flex items-center justify-center p-4 min-h-[260px] cursor-pointer group"
+                onclick="openLightbox(document.getElementById('main-img').src)">
+                <img id="main-img" src=""
+                    class="max-w-full max-h-[240px] object-contain rounded-xl group-hover:scale-105 transition-transform duration-300" />
+            </div>
+            <div class="lg:col-span-2 space-y-4">
+                <!-- Metric Cards Bento -->
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                    <div class="bg-zinc-900/60 p-5 rounded-2xl border border-zinc-800/50 card-hover">
+                        <p class="text-[10px] text-zinc-500 font-semibold uppercase tracking-widest mb-2">Views Totais
+                        </p>
+                        <p id="dash-tot" class="text-3xl font-bold text-white font-mono">0</p>
+                    </div>
+                    <div class="bg-zinc-900/60 p-5 rounded-2xl border border-zinc-800/50 card-hover">
+                        <p class="text-[10px] text-zinc-500 font-semibold uppercase tracking-widest mb-2">Únicos
+                            (SHA-256)</p>
+                        <p id="dash-uniq" class="text-3xl font-bold text-emerald-400 font-mono">0</p>
+                    </div>
+                    <div class="bg-zinc-900/60 p-5 rounded-2xl border border-zinc-800/50 card-hover">
+                        <p class="text-[10px] text-zinc-500 font-semibold uppercase tracking-widest mb-2">Status</p>
+                        <p id="dash-status" class="text-xl font-bold mt-1">-</p>
+                    </div>
+                    <div class="bg-zinc-900/60 p-5 rounded-2xl border border-zinc-800/50 card-hover">
+                        <p class="text-[10px] text-zinc-500 font-semibold uppercase tracking-widest mb-2">Expira em</p>
+                        <p id="dash-exp" class="text-sm font-bold text-amber-400 mt-1">-</p>
+                        <div class="mt-2 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                            <div id="exp-bar"
+                                class="h-full bg-gradient-to-r from-emerald-500 to-amber-500 rounded-full transition-all duration-500"
+                                style="width:100%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Links -->
+                <div
+                    class="bg-zinc-900/60 rounded-2xl border border-zinc-800/50 p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label
+                            class="text-[10px] text-emerald-400 font-bold uppercase tracking-widest mb-1.5 block">Proxy
+                            Link (Invisível)</label>
+                        <div class="flex items-center gap-2">
+                            <input type="text" id="dash-proxy-url" readonly
+                                class="flex-1 bg-zinc-950/80 border border-zinc-800/50 text-zinc-400 text-xs rounded-xl p-3 font-mono outline-none hover:border-emerald-500/40 transition cursor-pointer"
+                                onclick="this.select(); navigator.clipboard.writeText(this.value); showToast('Proxy link copiado!')">
+                        </div>
+                    </div>
+                    <div>
+                        <label
+                            class="text-[10px] text-cyan-400 font-bold uppercase tracking-widest mb-1.5 block">Preview
+                            Direto</label>
+                        <div class="flex items-center gap-2">
+                            <input type="text" id="dash-preview-url" readonly
+                                class="flex-1 bg-zinc-950/80 border border-zinc-800/50 text-zinc-400 text-xs rounded-xl p-3 font-mono outline-none hover:border-cyan-500/40 transition cursor-pointer"
+                                onclick="this.select(); navigator.clipboard.writeText(this.value); showToast('Preview URL copiada!')">
+                        </div>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label
+                            class="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-1.5 block">Endpoint
+                            Destino (Redirect)</label>
+                        <p class="bg-zinc-950/80 border border-zinc-800/50 text-zinc-400 text-xs rounded-xl p-3 font-mono"
+                            id="dash-url">-</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Charts Row -->
+        <section class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <!-- Line Chart -->
+            <div class="bg-zinc-900/50 rounded-2xl border border-zinc-800/50 p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-xs font-bold text-zinc-400 uppercase tracking-widest">Acessos</h3>
+                    <div class="flex bg-zinc-900/80 rounded-xl p-1 border border-zinc-800/50 gap-0.5"
+                        id="chart-filters">
+                        <button onclick="changeChartPeriod('10m',this)"
+                            class="period-btn px-2.5 py-1 text-[10px] font-bold rounded-lg text-zinc-500 hover:text-white transition">10M</button>
+                        <button onclick="changeChartPeriod('1h',this)"
+                            class="period-btn px-2.5 py-1 text-[10px] font-bold rounded-lg text-zinc-500 hover:text-white transition">1H</button>
+                        <button onclick="changeChartPeriod('24h',this)"
+                            class="period-btn px-2.5 py-1 text-[10px] font-bold rounded-lg bg-zinc-800 text-white shadow transition">24H</button>
+                        <button onclick="changeChartPeriod('7d',this)"
+                            class="period-btn px-2.5 py-1 text-[10px] font-bold rounded-lg text-zinc-500 hover:text-white transition">7D</button>
+                    </div>
+                </div>
+                <div class="relative" style="height:260px;">
+                    <div id="chart-loader"
+                        class="absolute inset-0 bg-zinc-900/80 backdrop-blur-sm z-10 hidden flex items-center justify-center rounded-2xl">
+                        <div class="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin">
+                        </div>
+                    </div>
+                    <canvas id="viewChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Geo Map -->
+            <div class="bg-zinc-900/50 rounded-2xl border border-zinc-800/50 p-6">
+                <h3 class="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-4">Geolocalização</h3>
+                <div id="geo-chart-container" style="width:100%;height:260px;"></div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Lightbox -->
+    <div id="lightbox-modal"
+        class="fixed inset-0 bg-black/95 backdrop-blur-xl z-[80] hidden flex flex-col items-center justify-center">
+        <button onclick="closeLightbox()"
+            class="absolute top-6 right-6 text-zinc-400 hover:text-white transition p-2 bg-zinc-800/50 rounded-xl"><svg
+                class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg></button>
+        <img id="lightbox-img" src="" class="max-w-[90vw] max-h-[85vh] object-contain shadow-2xl rounded-xl" />
+    </div>
+
+    <script>
+        // Google Charts Init
+        google.charts.load('current', { 'packages': ['geochart'] });
+        let geoChartLoaded = false;
+        google.charts.setOnLoadCallback(() => { geoChartLoaded = true; });
+
+        let currentLinkID = "";
+        let currentOriginalURL = "";
+        let chartInstance = null;
+
+        async function auth() {
+            const id = document.getElementById('ipt-id').value;
+            const password = document.getElementById('ipt-pass').value;
+            const errEl = document.getElementById('error-msg');
+            errEl.classList.add('hidden');
+
+            if (!id || !password) {
+                errEl.innerText = 'Preencha ID e Senha.';
+                errEl.classList.remove('hidden');
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/private-stats', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id, password })
+                });
+
+                if (!res.ok) {
+                    const msg = await res.text();
+                    errEl.innerText = "Falha: " + msg;
+                    errEl.classList.remove('hidden');
+                    return;
+                }
+
+                currentLinkID = id;
+                const data = await res.json();
+
+                // Switch UI
+                document.getElementById('login-screen').classList.add('hidden');
+                const pnl = document.getElementById('dash-panel');
+                pnl.classList.remove('hidden');
+
+                // Fill Data
+                document.getElementById('dash-id').innerText = data.id;
+                document.getElementById('dash-tot').innerText = data.total_views;
+                document.getElementById('dash-uniq').innerText = data.unique_views;
+
+                let s = data.payment_status.toUpperCase();
+                let sc = s === "APPROVED" ? "text-emerald-400" : "text-amber-400";
+                document.getElementById('dash-status').innerHTML = `<span class="${sc}">${s}</span>`;
+
+                const expDate = new Date(data.expires_at);
+                document.getElementById('dash-exp').innerText = expDate.toLocaleString('pt-BR');
+
+                // Progress bar
+                const now = new Date();
+                const totalLife = expDate.getTime() - (now.getTime() - 7 * 24 * 60 * 60 * 1000); // rough estimate
+                const remaining = Math.max(0, expDate.getTime() - now.getTime());
+                const pct = Math.min(100, Math.max(0, (remaining / totalLife) * 100));
+                document.getElementById('exp-bar').style.width = pct + '%';
+
+                currentOriginalURL = data.original_url || "";
+                document.getElementById('dash-url').innerText = currentOriginalURL || "Nenhum (Modo Pixel Passivo)";
+
+                const baseDomain = window.location.origin;
+                document.getElementById('main-img').src = baseDomain + "/p/" + id;
+                document.getElementById('dash-proxy-url').value = baseDomain + "/i/" + id;
+                document.getElementById('dash-preview-url').value = baseDomain + "/p/" + id;
+
+                // Load Charts
+                fetchAndRenderChart('24h');
+
+            } catch (e) {
+                errEl.innerText = 'Erro ao contactar servidor.';
+                errEl.classList.remove('hidden');
+            }
+        }
+
+        function changeChartPeriod(period, btn) {
+            if (!currentLinkID) return;
+            document.querySelectorAll('.period-btn').forEach(b => { b.classList.remove('bg-zinc-800', 'text-white', 'shadow'); b.classList.add('text-zinc-500'); });
+            btn.classList.add('bg-zinc-800', 'text-white', 'shadow'); btn.classList.remove('text-zinc-500');
+            fetchAndRenderChart(period);
+        }
+
+        async function fetchAndRenderChart(period) {
+            if (!currentLinkID) return;
+            const loader = document.getElementById('chart-loader');
+            if (loader) loader.classList.remove('hidden');
+            try {
+                const res = await fetch(`/api/link-stats?id=${currentLinkID}&period=${period}`);
+                const data = await res.json();
+                let labels = data.labels || [], points = data.data || [];
+                if (labels.length === 0) { labels = ['Sem dados']; points = [0]; }
+                renderChart(labels, points, period);
+                if (geoChartLoaded) renderGeoMap();
+            } catch (err) { console.error("Chart error", err); }
+            finally { if (loader) loader.classList.add('hidden'); }
+        }
+
+        function renderChart(labels, dataPoints, period) {
+            const ctx = document.getElementById('viewChart').getContext('2d');
+            if (chartInstance) chartInstance.destroy();
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels, datasets: [{
+                        label: `Acessos (${period.toUpperCase()})`, data: dataPoints,
+                        borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.08)',
+                        borderWidth: 2, fill: true, tension: 0.4,
+                        pointBackgroundColor: '#10b981', pointBorderColor: '#18181b',
+                        pointRadius: labels.length > 20 ? 0 : 3, pointHoverRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: { backgroundColor: '#18181b', titleColor: '#10b981', bodyColor: '#fff', borderColor: '#27272a', borderWidth: 1 } },
+                    scales: {
+                        y: { beginAtZero: true, suggestedMax: 5, grid: { color: '#27272a40' }, ticks: { color: '#52525b', precision: 0, font: { size: 10 } } },
+                        x: { grid: { display: false }, ticks: { color: '#52525b', maxRotation: 45, font: { size: 10 } } }
+                    },
+                    interaction: { intersect: false, mode: 'index' }
+                }
+            });
+        }
+
+        async function renderGeoMap() {
+            if (!currentLinkID || !geoChartLoaded) return;
+            try {
+                const res = await fetch(`/api/link-geo?id=${currentLinkID}`);
+                const rawData = await res.json();
+                const data = google.visualization.arrayToDataTable(rawData);
+                const chart = new google.visualization.GeoChart(document.getElementById('geo-chart-container'));
+                chart.draw(data, {
+                    backgroundColor: '#09090b',
+                    datalessRegionColor: '#1c1c1e',
+                    defaultColor: '#27272a',
+                    colorAxis: { colors: ['#064e3b', '#10b981', '#34d399'] },
+                    legend: 'none',
+                    tooltip: { isHtml: true },
+                    keepAspectRatio: true,
+                    width: '100%',
+                    height: 260
+                });
+            } catch (err) { console.error("GeoMap error", err); }
+        }
+
+        function copyToClipboard(mode) {
+            let text = "";
+            if (mode === 'pixel') text = window.location.origin + "/i/" + currentLinkID;
+            else if (mode === 'url') { text = currentOriginalURL; if (!text) { alert("Sem endpoint destino!"); return; } }
+            navigator.clipboard.writeText(text).then(() => showToast("Copiado: " + text));
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.innerText = msg;
+            t.classList.remove('translate-x-[120%]', 'opacity-0');
+            setTimeout(() => t.classList.add('translate-x-[120%]', 'opacity-0'), 4000);
+        }
+
+        function openLightbox(src) { document.getElementById('lightbox-img').src = src; document.getElementById('lightbox-modal').classList.remove('hidden'); }
+        function closeLightbox() { document.getElementById('lightbox-modal').classList.add('hidden'); document.getElementById('lightbox-img').src = ""; }
+    </script>
+</body>
+
+</html>

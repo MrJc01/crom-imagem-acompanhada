@@ -1,0 +1,32 @@
+# Binários
+/crom-vision
+/main
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Ocultos/OS
+.DS_Store
+.env
+.env.local
+
+# Database
+*.db
+*.db-shm
+*.db-wal
+
+# Editor e IDE
+.idea/
+.vscode/
+*.swp
+
+# Storage (imagens enviadas)
+storage/*
+
+# GeoIP (MaxMind GeoLite2)
+*.mmdb
+
+# Testes temporários
+/tmp_test_*

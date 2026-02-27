@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Imagem Acompanhada | Host & Track Images</title>
+    <meta name="description"
+        content="Hospede imagens com rastreamento de visualizações em tempo real. Upload instantâneo via Drag & Drop ou Ctrl+V.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap"
+        rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'], mono: ['JetBrains Mono', 'monospace'] },
+                    colors: { brand: { 400: '#34d399', 500: '#10b981', 600: '#059669', 900: '#064e3b' } }
+                }
+            }
+        }
+    </script>
+    <style>
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: #27272a transparent;
+        }
+
+        .dropzone-active {
+            border-color: #10b981 !important;
+            background: radial-gradient(ellipse at center, rgba(16, 185, 129, 0.12) 0%, transparent 70%);
+        }
+
+        .hide-scroll::-webkit-scrollbar {
+            display: none;
+        }
+
+        .hide-scroll {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        @keyframes blob {
+            0% {
+                transform: translate(0, 0) scale(1)
+            }
+
+            33% {
+                transform: translate(30px, -50px) scale(1.1)
+            }
+
+            66% {
+                transform: translate(-20px, 20px) scale(.9)
+            }
+
+            100% {
+                transform: translate(0, 0) scale(1)
+            }
+        }
+
+        .animate-blob {
+            animation: blob 10s infinite;
+        }
+
+        .delay-2s {
+            animation-delay: 2s;
+        }
+
+        .delay-4s {
+            animation-delay: 4s;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0)
+            }
+
+            50% {
+                transform: translateY(-8px)
+            }
+        }
+
+        .animate-float {
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px)
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0)
+            }
+        }
+
+        .fade-up {
+            animation: fadeUp .5s ease-out forwards;
+        }
+
+        .glass {
+            background: rgba(24, 24, 27, 0.6);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(63, 63, 70, 0.5);
+        }
+
+        .card-hover {
+            transition: all .3s cubic-bezier(.4, 0, .2, 1);
+        }
+
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            border-color: rgba(16, 185, 129, 0.4);
+        }
+    </style>
+</head>
+
+<body class="bg-zinc-950 text-zinc-100 min-h-screen font-sans antialiased text-sm overflow-x-hidden relative">
+
+    <!-- Ambient Glow -->
+    <div class="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        <div
+            class="absolute top-[-10%] left-[15%] w-[500px] h-[500px] bg-emerald-600/8 rounded-full blur-[140px] animate-blob">
+        </div>
+        <div
+            class="absolute top-[10%] right-[10%] w-[400px] h-[400px] bg-cyan-600/6 rounded-full blur-[120px] animate-blob delay-2s">
+        </div>
+        <div
+            class="absolute bottom-[-5%] left-[40%] w-[500px] h-[500px] bg-indigo-600/5 rounded-full blur-[160px] animate-blob delay-4s">
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast"
+        class="fixed top-5 right-5 bg-emerald-600 text-white px-6 py-3 rounded-xl shadow-2xl transform transition-all duration-300 translate-x-[120%] opacity-0 z-[80] font-medium text-sm">
+        Pixel gerado com sucesso!
+    </div>
+
+    <!-- Header -->
+    <header class="max-w-7xl mx-auto px-6 lg:px-8 py-5 flex justify-between items-center relative z-10">
+        <div class="flex items-center gap-3">
+            <div
+                class="w-9 h-9 bg-gradient-to-br from-emerald-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z">
+                    </path>
+                </svg>
+            </div>
+            <div>
+                <h1
+                    class="text-xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-cyan-400">
+                    Imagem Acompanhada</h1>
+                <p class="text-zinc-500 text-[10px] font-semibold tracking-widest uppercase">Asset Tracker <span
+                        id="app-mode-badge" class="ml-1 text-amber-400">...</span></p>
+            </div>
+        </div>
+        <nav class="flex items-center gap-2">
+            <a href="#about"
+                class="hidden sm:inline-flex px-4 py-2 text-xs text-zinc-400 hover:text-white transition font-medium rounded-lg hover:bg-zinc-800/50">Como
+                funciona</a>
+            <a href="#pricing"
+                class="hidden sm:inline-flex px-4 py-2 text-xs text-zinc-400 hover:text-white transition font-medium rounded-lg hover:bg-zinc-800/50">Preços</a>
+            <a href="/private.html"
+                class="px-4 py-2 text-xs font-semibold text-emerald-400 border border-emerald-500/30 rounded-xl hover:bg-emerald-500/10 transition">Minhas
+                Imagens</a>
+        </nav>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-6 lg:px-8 relative z-10">
+
+        <!-- Hero Dropzone -->
+        <section class="mb-16">
+            <div id="dropzone"
+                class="w-full min-h-[280px] md:min-h-[340px] border-2 border-dashed border-zinc-700/70 rounded-3xl flex flex-col items-center justify-center transition-all duration-300 hover:border-emerald-500/50 cursor-pointer group relative overflow-hidden bg-zinc-900/30">
+                <input type="file" id="file-input" class="hidden" accept="image/*">
+                <div class="text-center z-10 pointer-events-none px-4" id="drop-text">
+                    <div
+                        class="w-16 h-16 mx-auto mb-5 rounded-2xl bg-zinc-800/80 border border-zinc-700/50 flex items-center justify-center group-hover:bg-emerald-500/10 group-hover:border-emerald-500/30 transition-all duration-300 animate-float">
+                        <svg class="w-8 h-8 text-zinc-500 group-hover:text-emerald-400 transition-colors duration-300"
+                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12">
+                            </path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl md:text-2xl font-bold text-zinc-200 mb-2">Arraste uma imagem ou pressione <kbd
+                            class="px-2 py-0.5 bg-zinc-800 border border-zinc-700 rounded-lg text-emerald-400 text-sm font-mono">Ctrl+V</kbd>
+                    </h3>
+                    <p class="text-zinc-500 text-sm max-w-md mx-auto">PNG, JPG ou GIF • Upload instantâneo com
+                        rastreamento automático</p>
+                </div>
+                <img id="image-preview"
+                    class="absolute inset-0 w-full h-full object-cover hidden z-0 opacity-30 blur-md scale-110" />
+                <div id="uploading-overlay"
+                    class="absolute inset-0 bg-zinc-950/90 backdrop-blur-md z-20 flex flex-col items-center justify-center hidden">
+                    <div
+                        class="w-12 h-12 border-[3px] border-emerald-500 border-t-transparent rounded-full animate-spin mb-4">
+                    </div>
+                    <p class="text-emerald-400 font-bold tracking-widest text-xs uppercase">Processando Asset...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Public Gallery -->
+        <section class="mb-16" id="gallery-section">
+            <div class="flex items-center justify-between mb-8">
+                <div>
+                    <h2 class="text-2xl font-bold text-white flex items-center gap-3">
+                        <span class="w-8 h-8 bg-emerald-500/10 rounded-lg flex items-center justify-center">
+                            <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z">
+                                </path>
+                            </svg>
+                        </span>
+                        Explore
+                    </h2>
+                    <p class="text-zinc-500 text-sm mt-1">Assets públicos ativos na plataforma</p>
+                </div>
+                <div class="flex gap-6">
+                    <div class="text-right">
+                        <p class="text-[10px] text-zinc-500 uppercase tracking-widest font-semibold">Ativos</p>
+                        <p class="text-xl font-bold font-mono text-cyan-400" id="stat-total-links">0</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-[10px] text-zinc-500 uppercase tracking-widest font-semibold">Hits</p>
+                        <p class="text-xl font-bold font-mono text-emerald-400" id="stat-total-views">0</p>
+                    </div>
+                </div>
+            </div>
+            <div id="gallery-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5 pb-4">
+                <div
+                    class="h-52 rounded-2xl bg-zinc-900/50 border border-zinc-800/50 flex items-center justify-center animate-pulse">
+                    <p class="text-zinc-700 text-xs">Carregando...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- About Section -->
+        <section id="about" class="max-w-5xl mx-auto mb-16">
+            <div class="glass rounded-3xl p-8 md:p-12 relative overflow-hidden">
+                <div
+                    class="absolute top-0 right-0 -mt-20 -mr-20 w-64 h-64 bg-emerald-500/8 rounded-full blur-3xl pointer-events-none">
+                </div>
+                <h2
+                    class="text-3xl font-extrabold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-cyan-400 inline-block">
+                    Como funciona</h2>
+                <p class="text-zinc-500 mb-8 text-sm">Hospede, rastreie e monitore seus assets visuais em 3 passos.</p>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="p-6 bg-zinc-900/60 border border-zinc-800/50 rounded-2xl card-hover">
+                        <div class="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center mb-4"><span
+                                class="text-emerald-400 font-bold text-lg">1</span></div>
+                        <h3 class="text-white font-bold mb-2">Upload Instantâneo</h3>
+                        <p class="text-zinc-500 text-sm leading-relaxed">Arraste, cole ou clique. Sua imagem é validada
+                            (magic bytes) e salva em disco com ID único.</p>
+                    </div>
+                    <div class="p-6 bg-zinc-900/60 border border-zinc-800/50 rounded-2xl card-hover">
+                        <div class="w-10 h-10 bg-cyan-500/10 rounded-xl flex items-center justify-center mb-4"><span
+                                class="text-cyan-400 font-bold text-lg">2</span></div>
+                        <h3 class="text-white font-bold mb-2">Tracker Invisível</h3>
+                        <p class="text-zinc-500 text-sm leading-relaxed">Receba um link proxy que registra cada acesso
+                            com hash SHA-256 do IP, User-Agent e geo.</p>
+                    </div>
+                    <div class="p-6 bg-zinc-900/60 border border-zinc-800/50 rounded-2xl card-hover">
+                        <div class="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center mb-4"><span
+                                class="text-indigo-400 font-bold text-lg">3</span></div>
+                        <h3 class="text-white font-bold mb-2">Dashboard Analítico</h3>
+                        <p class="text-zinc-500 text-sm leading-relaxed">Visualize acessos por hora/dia, visitantes
+                            únicos e geolocalização em tempo real.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Sobre o Imagem Acompanhada / crom.run -->
+        <section id="crom-run" class="max-w-5xl mx-auto mb-16">
+            <div class="glass rounded-3xl p-8 md:p-12 relative overflow-hidden">
+                <div
+                    class="absolute top-0 left-0 -mt-16 -ml-16 w-56 h-56 bg-cyan-500/8 rounded-full blur-3xl pointer-events-none">
+                </div>
+                <div class="flex flex-col md:flex-row gap-8 items-start">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div
+                                class="w-10 h-10 bg-gradient-to-br from-emerald-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h2 class="text-2xl font-extrabold text-white">Feito por <span
+                                        class="bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-cyan-400">crom.run</span>
+                                </h2>
+                                <p class="text-zinc-500 text-xs">Infraestrutura brasileira para desenvolvedores</p>
+                            </div>
+                        </div>
+                        <p class="text-zinc-400 text-sm leading-relaxed mb-6">O <strong
+                                class="text-white">Imagem Acompanhada</strong> é um produto do ecossistema <strong
+                                class="text-emerald-400">crom.run</strong> — uma plataforma brasileira focada em
+                            ferramentas de infraestrutura para desenvolvedores. Hospedagem de imagens com rastreamento
+                            inteligente, conformidade com a LGPD e zero dependência de APIs externas.</p>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="flex items-center gap-2 text-xs text-zinc-400"><span
+                                    class="text-emerald-400">✓</span> GeoIP Local (MaxMind)</div>
+                            <div class="flex items-center gap-2 text-xs text-zinc-400"><span
+                                    class="text-emerald-400">✓</span> LGPD Compliant</div>
+                            <div class="flex items-center gap-2 text-xs text-zinc-400"><span
+                                    class="text-emerald-400">✓</span> IP Hash SHA-256</div>
+                            <div class="flex items-center gap-2 text-xs text-zinc-400"><span
+                                    class="text-emerald-400">✓</span> Hard Delete Automático</div>
+                            <div class="flex items-center gap-2 text-xs text-zinc-400"><span
+                                    class="text-emerald-400">✓</span> Self-Hosted (Go + SQLite)</div>
+                            <div class="flex items-center gap-2 text-xs text-zinc-400"><span
+                                    class="text-emerald-400">✓</span> Zero APIs Externas</div>
+                        </div>
+                    </div>
+                    <div class="w-full md:w-56 space-y-3 shrink-0">
+                        <div class="bg-zinc-900/80 border border-zinc-800/50 rounded-2xl p-4">
+                            <p class="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-2">Status do
+                                Sistema</p>
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                                <span class="text-xs text-emerald-400 font-semibold">Online</span>
+                            </div>
+                            <div id="geo-status-card" class="flex items-center gap-2">
+                                <span id="geo-dot" class="w-2 h-2 bg-zinc-600 rounded-full"></span>
+                                <span id="geo-label" class="text-xs text-zinc-500">Geo: verificando...</span>
+                            </div>
+                        </div>
+                        <a href="https://crom.run" target="_blank"
+                            class="block w-full text-center px-4 py-3 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white text-xs font-bold rounded-xl shadow-lg shadow-emerald-500/20 transition">Visitar
+                            crom.run →</a>
+                        <a href="/privacy.html"
+                            class="block w-full text-center px-4 py-2.5 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-400 text-xs font-medium rounded-xl transition">🛡️
+                            Política de Privacidade</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Pricing -->
+        <section id="pricing" class="max-w-4xl mx-auto mb-20">
+            <div class="text-center mb-10">
+                <h2
+                    class="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-cyan-400 inline-block mb-2">
+                    Planos</h2>
+                <p class="text-zinc-500 text-sm">Escolha a validade ideal para seu asset</p>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="glass rounded-2xl p-6 text-center card-hover">
+                    <p class="text-2xl font-bold text-white mb-1">Free</p>
+                    <p class="text-emerald-400 text-xs font-semibold mb-3">1 DIA</p>
+                    <p class="text-zinc-500 text-xs">Perfeito para testes rápidos</p>
+                </div>
+                <div class="glass rounded-2xl p-6 text-center card-hover border-emerald-500/30">
+                    <p class="text-2xl font-bold text-white mb-1">R$ 5</p>
+                    <p class="text-emerald-400 text-xs font-semibold mb-3">7 DIAS</p>
+                    <p class="text-zinc-500 text-xs">Campanhas curtas</p>
+                </div>
+                <div class="glass rounded-2xl p-6 text-center card-hover">
+                    <p class="text-2xl font-bold text-white mb-1">R$ 15</p>
+                    <p class="text-emerald-400 text-xs font-semibold mb-3">30 DIAS</p>
+                    <p class="text-zinc-500 text-xs">Projetos e portfólios</p>
+                </div>
+                <div class="glass rounded-2xl p-6 text-center card-hover">
+                    <p class="text-2xl font-bold text-white mb-1">R$ 50</p>
+                    <p class="text-emerald-400 text-xs font-semibold mb-3">1 ANO</p>
+                    <p class="text-zinc-500 text-xs">Long-term tracking</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Setup Modal -->
+    <div id="setup-modal"
+        class="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] hidden flex items-center justify-center p-4">
+        <div class="glass rounded-3xl p-8 w-full max-w-md shadow-2xl relative fade-up border-zinc-700/50">
+            <button onclick="closeSetupConfig()"
+                class="absolute top-5 right-5 text-zinc-500 hover:text-white transition p-1"><svg class="w-5 h-5"
+                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                    </path>
+                </svg></button>
+            <h3 class="text-xl font-bold text-white mb-6 flex items-center gap-3">
+                <span class="w-8 h-8 bg-emerald-500/10 rounded-lg flex items-center justify-center"><svg
+                        class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4">
+                        </path>
+                    </svg></span>
+                Configurar Asset
+            </h3>
+            <form id="checkout-form" onsubmit="confirmUpload(event)" class="space-y-5">
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">E-mail
+                        (Notificações)</label>
+                    <input type="email" id="f-email"
+                        class="w-full bg-zinc-900/80 border border-zinc-700/50 rounded-xl p-3.5 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition text-sm"
+                        placeholder="seu@email.com">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">URL de
+                        Redirecionamento (Opcional)</label>
+                    <input type="url" id="f-url"
+                        class="w-full bg-zinc-900/80 border border-zinc-700/50 rounded-xl p-3.5 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition text-sm font-mono"
+                        placeholder="https://...">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label
+                            class="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Validade</label>
+                        <select id="f-tier"
+                            class="w-full bg-zinc-900/80 border border-zinc-700/50 rounded-xl p-3.5 focus:outline-none focus:border-emerald-500/50 transition text-sm">
+                            <option value="1d">1 Dia (Free)</option>
+                            <option value="7d">1 Semana (R$ 5)</option>
+                            <option value="1mo">1 Mês (R$ 15)</option>
+                            <option value="1y">1 Ano (R$ 50)</option>
+                            <option value="10y">10 Anos (R$ 100)</option>
+                        </select>
+                        <input type="number" id="f-days"
+                            class="hidden w-full bg-zinc-900/80 border border-zinc-700/50 rounded-xl p-3.5 focus:outline-none focus:border-emerald-500/50 transition text-sm"
+                            placeholder="Dias" min="1">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Limite
+                            Views (0=∞)</label>
+                        <input type="number" id="f-max" value="0" min="0"
+                            class="w-full bg-zinc-900/80 border border-zinc-700/50 rounded-xl p-3.5 focus:outline-none focus:border-emerald-500/50 transition text-sm">
+                    </div>
+                </div>
+                <button type="submit"
+                    class="w-full bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white py-3.5 rounded-xl font-bold shadow-lg shadow-emerald-500/20 transition-all active:scale-[.98] mt-2 text-sm">
+                    Gerar Tracker & Finalizar
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Dashboard Sidebar -->
+    <div id="dashboard-sidebar"
+        class="fixed right-0 top-0 bottom-0 w-full max-w-lg bg-zinc-950/95 backdrop-blur-xl border-l border-zinc-800/50 shadow-2xl z-[70] transform translate-x-full transition-transform duration-300 flex flex-col hide-scroll overflow-y-auto">
+        <div
+            class="p-6 border-b border-zinc-800/50 flex justify-between items-center bg-zinc-950/80 backdrop-blur-xl sticky top-0 z-10">
+            <h2 class="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-cyan-400">
+                Dashboard</h2>
+            <button onclick="closeDashboard()"
+                class="p-2 hover:bg-zinc-800 rounded-xl transition text-zinc-400 hover:text-white"><svg class="w-5 h-5"
+                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                    </path>
+                </svg></button>
+        </div>
+        <div class="p-6 flex-1 space-y-6">
+            <!-- Image Preview -->
+            <div id="dash-img-container"
+                class="w-full h-48 bg-zinc-900/50 rounded-2xl flex items-center justify-center overflow-hidden border border-zinc-800/50 cursor-pointer group">
+                <img id="dash-img" src=""
+                    class="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform duration-300" />
+            </div>
+
+            <!-- Metrics Bento -->
+            <div class="grid grid-cols-2 gap-3">
+                <div class="bg-zinc-900/60 p-4 rounded-2xl border border-zinc-800/50">
+                    <p class="text-[10px] text-zinc-500 font-semibold uppercase tracking-widest mb-1">Views Totais</p>
+                    <p id="dash-total" class="text-2xl font-bold font-mono text-white">0</p>
+                </div>
+                <div class="bg-zinc-900/60 p-4 rounded-2xl border border-zinc-800/50">
+                    <p class="text-[10px] text-zinc-500 font-semibold uppercase tracking-widest mb-1">Únicos (SHA-256)
+                    </p>
+                    <p id="dash-uniq" class="text-2xl font-bold font-mono text-emerald-400">0</p>
+                </div>
+            </div>
+
+            <!-- Chart -->
+            <div>
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-xs font-bold text-zinc-400 uppercase tracking-widest">Acessos</h3>
+                    <div class="flex bg-zinc-900/80 rounded-xl p-1 border border-zinc-800/50 gap-0.5" id="dash-filters">
+                        <button onclick="changeChartPeriod('10m',this)"
+                            class="period-btn px-2.5 py-1 text-[10px] font-bold rounded-lg text-zinc-500 hover:text-white transition">10M</button>
+                        <button onclick="changeChartPeriod('1h',this)"
+                            class="period-btn px-2.5 py-1 text-[10px] font-bold rounded-lg text-zinc-500 hover:text-white transition">1H</button>
+                        <button onclick="changeChartPeriod('24h',this)"
+                            class="period-btn px-2.5 py-1 text-[10px] font-bold rounded-lg bg-zinc-800 text-white shadow transition">24H</button>
+                        <button onclick="changeChartPeriod('7d',this)"
+                            class="period-btn px-2.5 py-1 text-[10px] font-bold rounded-lg text-zinc-500 hover:text-white transition">7D</button>
+                    </div>
+                </div>
+                <div class="bg-zinc-900/60 rounded-2xl border border-zinc-800/50 p-4 relative">
+                    <div id="chart-loader"
+                        class="absolute inset-0 bg-zinc-900/80 backdrop-blur-sm z-10 hidden flex items-center justify-center rounded-2xl">
+                        <div class="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin">
+                        </div>
+                    </div>
+                    <canvas id="viewChart" height="180"></canvas>
+                </div>
+            </div>
+
+            <!-- Geo Map -->
+            <div id="geo-section">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-xs font-bold text-zinc-400 uppercase tracking-widest">Origem do Tráfego</h3>
+                    <span id="dash-geo-badge"
+                        class="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400">GEO
+                        ATIVO</span>
+                </div>
+                <div class="bg-zinc-900/60 rounded-2xl border border-zinc-800/50 p-3 overflow-hidden relative">
+                    <div id="geo-chart-container" style="width:100%;height:220px;"></div>
+                </div>
+            </div>
+            <!-- Geo Disabled Message -->
+            <div id="geo-disabled-msg" class="hidden">
+                <h3 class="text-xs font-bold text-zinc-400 mb-3 uppercase tracking-widest">Origem do Tráfego</h3>
+                <div class="bg-zinc-900/60 rounded-2xl border border-zinc-800/50 p-6 text-center">
+                    <p class="text-zinc-600 text-sm">🌐 Rastreamento geográfico desativado</p>
+                    <p class="text-zinc-700 text-xs mt-1">Ative <code
+                            class="text-zinc-500">GEO_TRACKING_ENABLED=true</code> no .env</p>
+                </div>
+            </div>
+
+            <!-- Links -->
+            <div class="bg-zinc-900/60 rounded-2xl border border-zinc-800/50 p-5 space-y-4">
+                <div>
+                    <label
+                        class="flex justify-between items-center text-[10px] text-emerald-400 font-bold mb-1.5 uppercase tracking-widest"><span>Proxy
+                            Link (Invisível)</span></label>
+                    <input type="text" id="dash-pixel-url" readonly
+                        class="w-full bg-zinc-950/80 border border-zinc-800/50 text-zinc-300 text-xs rounded-xl p-3 font-mono outline-none hover:border-emerald-500/40 transition cursor-pointer"
+                        onclick="this.select(); navigator.clipboard.writeText(this.value); showToast('Proxy URL copiada!')">
+                </div>
+                <div>
+                    <label
+                        class="flex justify-between items-center text-[10px] text-cyan-400 font-bold mb-1.5 uppercase tracking-widest"><span>Preview
+                            Direto</span></label>
+                    <input type="text" id="dash-preview-url" readonly
+                        class="w-full bg-zinc-950/80 border border-zinc-800/50 text-zinc-300 text-xs rounded-xl p-3 font-mono outline-none hover:border-cyan-500/40 transition cursor-pointer"
+                        onclick="this.select(); navigator.clipboard.writeText(this.value); showToast('Image URL copiada!')">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar Overlay -->
+    <div id="sidebar-overlay" onclick="closeDashboard()"
+        class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[65] hidden transition-opacity"></div>
+
+    <!-- Success Modal -->
+    <div id="success-modal"
+        class="fixed inset-0 bg-black/80 backdrop-blur-md z-[75] hidden flex items-center justify-center p-4">
+        <div class="glass rounded-3xl p-8 w-full max-w-lg shadow-2xl relative text-center fade-up border-zinc-700/50">
+            <button onclick="document.getElementById('success-modal').classList.add('hidden')"
+                class="absolute top-5 right-5 text-zinc-500 hover:text-white transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                    </path>
+                </svg>
+            </button>
+            <div
+                class="mx-auto w-16 h-16 bg-emerald-500/15 text-emerald-500 rounded-2xl flex items-center justify-center mb-6">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+            </div>
+            <h3
+                class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-cyan-400 mb-2">
+                Upload Concluído!</h3>
+            <p class="text-zinc-500 mb-6 text-sm">Seu asset está ativo e rastreando acessos.</p>
+            <div class="space-y-4 text-left">
+                <div><label class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Proxy Tracking
+                        URL</label>
+                    <div class="flex items-center gap-2 mt-1.5"><input type="text" id="success-pixel" readonly
+                            class="flex-1 bg-zinc-900/80 border border-zinc-800/50 text-zinc-300 text-xs rounded-xl p-3 font-mono"><button
+                            onclick="document.getElementById('success-pixel').select(); navigator.clipboard.writeText(document.getElementById('success-pixel').value); showToast('Copiado!')"
+                            class="p-3 bg-zinc-800 hover:bg-zinc-700 rounded-xl text-white transition"><svg
+                                class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z">
+                                </path>
+                            </svg></button></div>
+                </div>
+                <div><label class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Image URL</label>
+                    <div class="flex items-center gap-2 mt-1.5"><input type="text" id="success-preview" readonly
+                            class="flex-1 bg-zinc-900/80 border border-zinc-800/50 text-zinc-300 text-xs rounded-xl p-3 font-mono"><button
+                            onclick="document.getElementById('success-preview').select(); navigator.clipboard.writeText(document.getElementById('success-preview').value); showToast('Copiado!')"
+                            class="p-3 bg-zinc-800 hover:bg-zinc-700 rounded-xl text-white transition"><svg
+                                class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z">
+                                </path>
+                            </svg></button></div>
+                </div>
+            </div>
+            <div class="mt-8 flex gap-3">
+                <button id="btn-success-dash"
+                    class="flex-1 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-white font-bold py-3 rounded-xl transition text-sm">Ver
+                    Dashboard</button>
+                <button id="btn-success-lightbox"
+                    class="flex-1 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-bold py-3 rounded-xl shadow-lg shadow-emerald-500/20 transition text-sm">Ver
+                    Imagem</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lightbox -->
+    <div id="lightbox-modal"
+        class="fixed inset-0 bg-black/95 backdrop-blur-xl z-[80] hidden flex flex-col items-center justify-center">
+        <button onclick="closeLightbox()"
+            class="absolute top-6 right-6 text-zinc-400 hover:text-white transition p-2 bg-zinc-800/50 rounded-xl"><svg
+                class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg></button>
+        <img id="lightbox-img" src="" class="max-w-[90vw] max-h-[85vh] object-contain shadow-2xl rounded-xl" />
+    </div>
+
+    <!-- Footer -->
+    <footer class="relative z-10 border-t border-zinc-800/50 mt-10">
+        <div class="max-w-7xl mx-auto px-6 lg:px-8 py-8 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <p class="text-zinc-600 text-xs font-mono">Imagem Acompanhada v5 • by <a href="https://crom.run" target="_blank"
+                    class="text-emerald-500 hover:text-emerald-400 transition">crom.run</a></p>
+            <div class="flex items-center gap-4">
+                <a href="/privacy.html" class="text-zinc-600 hover:text-zinc-400 text-xs transition">Privacidade</a>
+                <a href="https://crom.run" target="_blank"
+                    class="text-zinc-600 hover:text-zinc-400 text-xs transition">crom.run</a>
+                <p class="text-zinc-700 text-xs">Feito com <span class="text-emerald-500">◆</span> Go</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Google Charts Init
+        google.charts.load('current', { 'packages': ['geochart'] });
+        let geoChartLoaded = false;
+        google.charts.setOnLoadCallback(() => { geoChartLoaded = true; });
+
+        let currentMode = "saas";
+        let geoTrackingEnabled = true;
+        let dropzone = document.getElementById('dropzone');
+        let fileInput = document.getElementById('file-input');
+        let currentFile = null;
+        let chartInstance = null;
+
+        // --- Init ---
+        async function init() {
+            try {
+                const confRes = await fetch('/api/config');
+                const conf = await confRes.json();
+                currentMode = conf.app_mode;
+                geoTrackingEnabled = conf.geo_tracking_enabled !== 'false';
+
+                let badgeTxt = 'SAAS', badgeColor = 'text-amber-400';
+                if (currentMode === 'free') {
+                    badgeTxt = 'FREE'; badgeColor = 'text-emerald-400';
+                    document.getElementById('f-tier').classList.add('hidden');
+                    const dInput = document.getElementById('f-days');
+                    dInput.classList.remove('hidden'); dInput.required = true; dInput.value = 7;
+                } else if (currentMode === 'dev') {
+                    badgeTxt = 'DEV'; badgeColor = 'text-fuchsia-400';
+                }
+                document.getElementById('app-mode-badge').innerText = badgeTxt;
+                document.getElementById('app-mode-badge').className = `ml-1 font-bold ${badgeColor}`;
+
+                // Geo status cards
+                const geoDot = document.getElementById('geo-dot');
+                const geoLabel = document.getElementById('geo-label');
+                if (geoTrackingEnabled) {
+                    geoDot.className = 'w-2 h-2 bg-emerald-500 rounded-full';
+                    geoLabel.className = 'text-xs text-emerald-400 font-semibold';
+                    geoLabel.innerText = 'Geo: ativo';
+                } else {
+                    geoDot.className = 'w-2 h-2 bg-zinc-600 rounded-full';
+                    geoLabel.className = 'text-xs text-zinc-500';
+                    geoLabel.innerText = 'Geo: desativado';
+                }
+            } catch (e) { console.error(e); }
+
+            loadGallery();
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const dashId = urlParams.get('dashboard');
+            if (dashId) {
+                openDashboard(dashId, window.location.origin + "/p/" + dashId, 0, 0, window.location.origin + "/i/" + dashId);
+                window.history.replaceState({}, document.title, "/");
+            }
+        }
+
+        // --- Drag & Drop & Paste ---
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(e => {
+            dropzone.addEventListener(e, preventDefaults, false);
+            document.body.addEventListener(e, preventDefaults, false);
+        });
+        function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
+        ['dragenter', 'dragover'].forEach(e => dropzone.addEventListener(e, () => dropzone.classList.add('dropzone-active'), false));
+        ['dragleave', 'drop'].forEach(e => dropzone.addEventListener(e, () => dropzone.classList.remove('dropzone-active'), false));
+        dropzone.addEventListener('drop', e => handleFiles(e.dataTransfer.files), false);
+        dropzone.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', function () { handleFiles(this.files); });
+
+        document.addEventListener('paste', (e) => {
+            const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+            let files = [];
+            for (let i in items) { if (items[i].kind === 'file') files.push(items[i].getAsFile()); }
+            if (files.length > 0) handleFiles(files);
+        });
+
+        function handleFiles(files) {
+            if (!files || files.length === 0) return;
+            const file = files[0];
+            if (!file.type.startsWith('image/')) { showToast('Apenas imagens são permitidas!'); return; }
+            currentFile = file;
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onloadend = function () {
+                const img = document.getElementById('image-preview');
+                img.src = reader.result; img.classList.remove('hidden');
+                document.getElementById('drop-text').classList.add('opacity-0');
+            }
+            document.getElementById('setup-modal').classList.remove('hidden');
+        }
+
+        function closeSetupConfig() {
+            document.getElementById('setup-modal').classList.add('hidden');
+            currentFile = null;
+            document.getElementById('image-preview').classList.add('hidden');
+            document.getElementById('drop-text').classList.remove('opacity-0');
+            fileInput.value = "";
+        }
+
+        // --- Upload ---
+        async function confirmUpload(e) {
+            e.preventDefault();
+            if (!currentFile) return;
+            document.getElementById('setup-modal').classList.add('hidden');
+            document.getElementById('uploading-overlay').classList.remove('hidden');
+
+            let tierVal = document.getElementById('f-tier').value;
+            if (currentMode === 'free') tierVal = document.getElementById('f-days').value + 'd';
+
+            const formData = new FormData();
+            formData.append('image', currentFile);
+            formData.append('email', document.getElementById('f-email').value);
+            formData.append('original_url', document.getElementById('f-url').value);
+            formData.append('tier', tierVal);
+            formData.append('max_views', document.getElementById('f-max').value || "0");
+
+            try {
+                const res = await fetch('/api/checkout', { method: 'POST', body: formData });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || "Erro no servidor");
+                showToast('Asset processado com sucesso!');
+
+                if (currentMode === 'free' || data.price === 0 || data.payment_status === 'approved') {
+                    const mdl = document.getElementById('success-modal');
+                    mdl.classList.remove('hidden');
+                    document.getElementById('success-pixel').value = data.pixel_url;
+                    document.getElementById('success-preview').value = data.preview_url;
+                    document.getElementById('btn-success-dash').onclick = () => { mdl.classList.add('hidden'); openDashboard(data.id, data.preview_url, 0, 0, data.pixel_url); };
+                    document.getElementById('btn-success-lightbox').onclick = () => { mdl.classList.add('hidden'); openLightbox(data.preview_url); };
+                    loadGallery();
+                } else {
+                    window.location.href = `/pay.html?id=${data.id}&p=${data.price}`;
+                }
+            } catch (err) {
+                showToast('Falha: ' + err.message);
+            } finally {
+                currentFile = null; fileInput.value = "";
+                document.getElementById('image-preview').classList.add('hidden');
+                document.getElementById('image-preview').src = "";
+                document.getElementById('drop-text').classList.remove('opacity-0');
+                document.getElementById('uploading-overlay').classList.add('hidden');
+            }
+        }
+
+        // --- Gallery ---
+        async function loadGallery() {
+            try {
+                const res = await fetch('/api/public-links');
+                const data = await res.json();
+                const grid = document.getElementById('gallery-grid');
+                if (!data || data.length === 0) {
+                    grid.innerHTML = '<div class="col-span-full text-center py-16 text-zinc-600 border-2 border-dashed border-zinc-800 rounded-2xl"><p class="text-lg mb-1">Nenhum asset público</p><p class="text-xs text-zinc-700">Faça o primeiro upload acima!</p></div>';
+                    document.getElementById('stat-total-links').innerText = 0;
+                    document.getElementById('stat-total-views').innerText = 0;
+                    return;
+                }
+                document.getElementById('stat-total-links').innerText = data.length;
+                document.getElementById('stat-total-views').innerText = data.reduce((a, c) => a + c.total_views, 0);
+                grid.innerHTML = '';
+                data.forEach(link => {
+                    const svgBase64 = encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><rect fill="#18181b" width="200" height="200"/><text fill="#3f3f46" font-size="14" font-family="monospace" x="50%" y="50%" dominant-baseline="middle" text-anchor="middle">PROXY</text></svg>');
+                    const previewPath = link.has_image ? `/p/${link.id}` : `data:image/svg+xml;utf8,${svgBase64}`;
+                    const card = document.createElement('div');
+                    card.className = 'group w-full h-52 bg-zinc-900/50 rounded-2xl overflow-hidden border border-zinc-800/50 card-hover cursor-pointer relative';
+                    card.onclick = () => openDashboard(link.id, previewPath, link.total_views, link.unique_views, window.location.origin + "/i/" + link.id);
+                    card.innerHTML = `
+                    <div class="absolute inset-0"><img src="${previewPath}" class="w-full h-full object-cover opacity-70 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500" loading="lazy"/></div>
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
+                    <div class="absolute bottom-0 left-0 right-0 p-4 z-10 flex justify-between items-end">
+                        <p class="text-[10px] font-mono text-zinc-400">#${link.id}</p>
+                        <div class="flex items-center gap-1 bg-zinc-950/60 backdrop-blur-sm px-2 py-1 rounded-lg">
+                            <svg class="w-3 h-3 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                            <span class="text-[10px] font-bold text-white">${link.total_views}</span>
+                        </div>
+                    </div>`;
+                    grid.appendChild(card);
+                });
+            } catch (err) { console.error("Gallery error", err); }
+        }
+
+        // --- Utils ---
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.innerText = msg;
+            t.classList.remove('translate-x-[120%]', 'opacity-0');
+            setTimeout(() => t.classList.add('translate-x-[120%]', 'opacity-0'), 4000);
+        }
+
+        // --- Dashboard Sidebar ---
+        let currentDashId = null;
+        function openDashboard(id, imgUrl, total, uniq, pixelUrl) {
+            currentDashId = id;
+            document.getElementById('dashboard-sidebar').classList.remove('translate-x-full');
+            document.getElementById('sidebar-overlay').classList.remove('hidden');
+            document.getElementById('dash-img').src = imgUrl;
+            document.getElementById('dash-total').innerText = total;
+            document.getElementById('dash-uniq').innerText = uniq;
+            document.getElementById('dash-pixel-url').value = pixelUrl;
+            document.getElementById('dash-preview-url').value = window.location.origin + "/p/" + id;
+            document.querySelectorAll('.period-btn').forEach(b => { b.classList.remove('bg-zinc-800', 'text-white', 'shadow'); b.classList.add('text-zinc-500'); });
+            document.querySelectorAll('.period-btn')[2].classList.add('bg-zinc-800', 'text-white', 'shadow');
+            document.querySelectorAll('.period-btn')[2].classList.remove('text-zinc-500');
+            fetchAndRenderChart('24h');
+        }
+        function closeDashboard() {
+            document.getElementById('dashboard-sidebar').classList.add('translate-x-full');
+            document.getElementById('sidebar-overlay').classList.add('hidden');
+            currentDashId = null;
+        }
+        function changeChartPeriod(period, btn) {
+            if (!currentDashId) return;
+            document.querySelectorAll('.period-btn').forEach(b => { b.classList.remove('bg-zinc-800', 'text-white', 'shadow'); b.classList.add('text-zinc-500'); });
+            btn.classList.add('bg-zinc-800', 'text-white', 'shadow'); btn.classList.remove('text-zinc-500');
+            fetchAndRenderChart(period);
+        }
+        async function fetchAndRenderChart(period) {
+            if (!currentDashId) return;
+            const loader = document.getElementById('chart-loader');
+            if (loader) loader.classList.remove('hidden');
+            try {
+                const res = await fetch(`/api/link-stats?id=${currentDashId}&period=${period}`);
+                const data = await res.json();
+                let labels = data.labels || [], points = data.data || [];
+                if (labels.length === 0) { labels = ['Sem dados']; points = [0]; }
+                renderChart(labels, points, period);
+
+                // Geo Map — só renderiza se ativo
+                if (geoTrackingEnabled && geoChartLoaded) {
+                    document.getElementById('geo-section').classList.remove('hidden');
+                    document.getElementById('geo-disabled-msg').classList.add('hidden');
+                    document.getElementById('dash-geo-badge').innerText = 'GEO ATIVO';
+                    document.getElementById('dash-geo-badge').className = 'text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400';
+                    renderGeoMap();
+                } else if (!geoTrackingEnabled) {
+                    document.getElementById('geo-section').classList.add('hidden');
+                    document.getElementById('geo-disabled-msg').classList.remove('hidden');
+                }
+
+            } catch (err) { console.error("Chart error", err); }
+            finally { if (loader) loader.classList.add('hidden'); }
+        }
+
+        function renderChart(labels, dataPoints, period) {
+            const ctx = document.getElementById('viewChart').getContext('2d');
+            if (chartInstance) chartInstance.destroy();
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels, datasets: [{
+                        label: `Acessos (${period.toUpperCase()})`, data: dataPoints,
+                        borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.08)',
+                        borderWidth: 2, fill: true, tension: 0.4,
+                        pointBackgroundColor: '#10b981', pointBorderColor: '#18181b',
+                        pointRadius: labels.length > 20 ? 0 : 3, pointHoverRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: { backgroundColor: '#18181b', titleColor: '#10b981', bodyColor: '#fff', borderColor: '#27272a', borderWidth: 1 } },
+                    scales: {
+                        y: { beginAtZero: true, suggestedMax: 5, grid: { color: '#27272a40' }, ticks: { color: '#52525b', precision: 0, font: { size: 10 } } },
+                        x: { grid: { display: false }, ticks: { color: '#52525b', maxRotation: 45, font: { size: 10 } } }
+                    },
+                    interaction: { intersect: false, mode: 'index' }
+                }
+            });
+        }
+
+        async function renderGeoMap() {
+            if (!currentDashId || !geoChartLoaded) return;
+            try {
+                const res = await fetch(`/api/link-geo?id=${currentDashId}`);
+                const rawData = await res.json();
+                const data = google.visualization.arrayToDataTable(rawData);
+                const chart = new google.visualization.GeoChart(document.getElementById('geo-chart-container'));
+                chart.draw(data, {
+                    backgroundColor: '#09090b',
+                    datalessRegionColor: '#1c1c1e',
+                    defaultColor: '#27272a',
+                    colorAxis: { colors: ['#064e3b', '#10b981', '#34d399'] },
+                    legend: 'none',
+                    tooltip: { isHtml: true, textStyle: { color: '#fff' } },
+                    keepAspectRatio: true,
+                    width: '100%',
+                    height: 220
+                });
+            } catch (err) { console.error("GeoMap error", err); }
+        }
+
+        // --- Lightbox ---
+        function openLightbox(src) { document.getElementById('lightbox-img').src = src; document.getElementById('lightbox-modal').classList.remove('hidden'); }
+        function closeLightbox() { document.getElementById('lightbox-modal').classList.add('hidden'); document.getElementById('lightbox-img').src = ""; }
+
+        // --- Extra ---
+        document.getElementById('dash-img-container').onclick = function () {
+            if (document.getElementById('dash-img').src) openLightbox(document.getElementById('dash-img').src);
+        }
+
+        init();
+        setInterval(loadGallery, 30000);
+    </script>
+</body>
+
+</html>

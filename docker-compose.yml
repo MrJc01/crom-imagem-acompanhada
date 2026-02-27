@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  crom-vision:
+    build: .
+    container_name: crom-vision-app
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/app/data
+    env_file:
+      - .env
